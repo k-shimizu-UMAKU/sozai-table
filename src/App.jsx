@@ -123,14 +123,25 @@ function AuthScreen({onAuth}) {
   const [msg,setMsg] = useState(null)
   const [err,setErr] = useState(null)
 
+  const validatePassword = (pw) => {
+    if (pw.length < 8) return 'パスワードは8文字以上にしてください'
+    if (!/[a-zA-Z]/.test(pw)) return 'パスワードに英字を含めてください'
+    if (!/[0-9]/.test(pw)) return 'パスワードに数字を含めてください'
+    return null
+  }
+
   const handle = async () => {
     if (!email || !password) return
+    if (mode === 'signup') {
+      const pwErr = validatePassword(password)
+      if (pwErr) { setErr(pwErr); return }
+    }
     setLoading(true); setErr(null); setMsg(null)
     try {
       if (mode === 'signup') {
         const {error} = await supabase.auth.signUp({email,password})
         if (error) throw error
-        setMsg('確認メールを送りました。メールのリンクをクリックしてください。')
+        setMsg('【SOZAI TABLE】確認メールを送りました。メール内のリンクをクリックしてログインしてください。')
       } else {
         const {data,error} = await supabase.auth.signInWithPassword({email,password})
         if (error) throw error
@@ -148,6 +159,16 @@ function AuthScreen({onAuth}) {
     else setMsg('パスワードリセットのメールを送りました。')
     setLoading(false)
   }
+
+  // 会員特典リスト
+  const FEATURES = [
+    {icon:'🔍', name:'添加物チェッカー', desc:'商品名や成分表示を入力するだけで、AIが「本物かどうか」を即座に判定。リン酸塩・化学調味料・「無添加」のからくりまで解説します。'},
+    {icon:'🥘', name:'惣菜レシピ提案',   desc:'今日の体調・シーン・食へのこだわりを選ぶと、シェフの知識をもとにAIがあなただけの惣菜3品を提案。天然調味料だけを使ったレシピです。'},
+    {icon:'🌿', name:'食材の栄養解説',   desc:'旬の食材の栄養・体への効果・栄養を逃さない調理法を毎月更新。「なぜ春の山菜は苦いのか」という問いへの科学的な答えがここにあります。'},
+    {icon:'📋', name:'マイプログラム',   desc:'目標と現在の食生活を入力すると、AIが2週間の味覚リセットプログラムを設計。毎日のタスクをチェックしながら、体を少しずつ整えていきます。'},
+    {icon:'✉️', name:'シェフのコラム',   desc:'現役シェフが毎月1日に執筆する読み物コンテンツ。料理教室では語りきれなかった食の知恵と、季節の食材への深い洞察をお届けします。'},
+    {icon:'💬', name:'Q&A相談',         desc:'食・栄養・調味料・添加物について、AIがすぐに回答。さらに毎月1回、シェフが厳選した質問にコメントします。料理の相談相手がいつでもそばに。'},
+  ]
 
   return (
     <div style={{background:C.linen,minHeight:'100vh',fontFamily:"system-ui,'Hiragino Sans',sans-serif"}}>
@@ -174,7 +195,7 @@ function AuthScreen({onAuth}) {
 
       <div style={{padding:'16px 24px 32px'}}>
         {err && <div style={{background:'#fdecea',border:'1px solid #f0b8a8',borderRadius:12,padding:'10px 14px',fontSize:11,color:'#8b2a1a',marginBottom:14}}>{err}</div>}
-        {msg && <div style={{background:C.mist,border:'1px solid #b8d0a4',borderRadius:12,padding:'10px 14px',fontSize:11,color:C.moss,marginBottom:14}}>{msg}</div>}
+        {msg && <div style={{background:C.mist,border:'1px solid #b8d0a4',borderRadius:12,padding:'10px 14px',fontSize:12,color:C.moss,marginBottom:14,lineHeight:1.7}}>{msg}</div>}
 
         <div style={{marginBottom:14}}>
           <div style={{fontSize:9,color:C.herb,letterSpacing:1,marginBottom:6}}>メールアドレス</div>
@@ -185,15 +206,21 @@ function AuthScreen({onAuth}) {
         </div>
 
         {mode !== 'forgot' && (
-          <div style={{marginBottom:20}}>
+          <div style={{marginBottom:mode==='signup'?8:20}}>
             <div style={{fontSize:9,color:C.herb,letterSpacing:1,marginBottom:6}}>パスワード</div>
             <input type="password" value={password} onChange={e=>setPassword(e.target.value)}
               onKeyDown={e=>e.key==='Enter'&&handle()}
-              placeholder="8文字以上"
+              placeholder={mode==='signup'?'英数字を含む8文字以上':'パスワード'}
               style={{width:'100%',background:C.cream,border:`1.5px solid ${C.parchment}`,borderRadius:12,padding:'12px 14px',fontSize:13,color:C.espresso,outline:'none',boxSizing:'border-box',fontFamily:"system-ui,sans-serif"}}
             />
+            {mode==='signup' && (
+              <div style={{fontSize:10,color:C.sand,marginTop:6,lineHeight:1.6}}>
+                ・8文字以上　・英字（a-z / A-Z）を含む　・数字（0-9）を含む
+              </div>
+            )}
           </div>
         )}
+        {mode==='signup' && <div style={{marginBottom:20}}/>}
 
         <button
           onClick={mode==='forgot'?handleForgot:handle}
@@ -218,6 +245,49 @@ function AuthScreen({onAuth}) {
             </button>
           )}
         </div>
+
+        {/* ─── 新規会員向け特典紹介（ログイン画面のみ表示） ─── */}
+        {mode === 'login' && (
+          <div style={{marginTop:40}}>
+            <div style={{textAlign:'center',marginBottom:24}}>
+              <div style={{fontSize:8,color:C.sand,letterSpacing:3,marginBottom:10}}>SOZAI TABLE とは</div>
+              <div style={{fontFamily:"Georgia,'Hiragino Mincho Pro',serif",fontSize:16,color:C.espresso,lineHeight:1.8,fontWeight:'normal'}}>
+                料理教室で学んだ知識が、<br/>毎日の食卓でいきる。
+              </div>
+              <div style={{fontFamily:"Georgia,'Hiragino Mincho Pro',serif",fontSize:11,color:C.herb,lineHeight:1.8,marginTop:8}}>
+                現役シェフの食の科学と、AIの力を組み合わせた<br/>月額750円のパーソナル食アドバイザーです。
+              </div>
+            </div>
+
+            {/* 特典カード */}
+            {FEATURES.map((f,i)=>(
+              <div key={i} style={{background:C.cream,border:`1px solid ${C.parchment}`,borderRadius:16,padding:'16px 18px',marginBottom:10}}>
+                <div style={{display:'flex',gap:12,alignItems:'flex-start'}}>
+                  <div style={{fontSize:22,flexShrink:0,marginTop:2}}>{f.icon}</div>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:500,color:C.espresso,marginBottom:5}}>{f.name}</div>
+                    <div style={{fontFamily:"Georgia,'Hiragino Mincho Pro',serif",fontSize:11,color:'#6a7860',lineHeight:1.75}}>{f.desc}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* 価格と申し込みCTA */}
+            <div style={{background:C.moss,borderRadius:16,padding:'20px 20px',marginTop:20,textAlign:'center'}}>
+              <div style={{fontSize:9,color:'rgba(250,246,238,0.6)',letterSpacing:2,marginBottom:8}}>月額メンバーシップ</div>
+              <div style={{fontFamily:'Georgia,serif',fontSize:28,color:C.cream,marginBottom:4}}>¥750<span style={{fontSize:13,color:'rgba(250,246,238,0.7)'}}>/月</span></div>
+              <div style={{fontSize:10,color:'rgba(250,246,238,0.65)',marginBottom:16,lineHeight:1.6}}>クレジットカード決済・いつでも解約可能</div>
+              <button onClick={()=>{setMode('signup');setErr(null);setMsg(null)}}
+                style={{width:'100%',background:C.clay,border:'none',borderRadius:12,padding:'14px',fontFamily:'Georgia,serif',fontSize:14,letterSpacing:2,color:C.cream,cursor:'pointer'}}>
+                いますぐはじめる
+              </button>
+            </div>
+
+            <div style={{textAlign:'center',marginTop:16,fontSize:10,color:C.sand,lineHeight:1.8}}>
+              「現役シェフに学ぶ、味と体を設計する惣菜講座」<br/>受講者の方もこちらからご登録ください。
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
