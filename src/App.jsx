@@ -148,18 +148,24 @@ const handle = async () => {
         return
       }
 
-      const {error: signUpError} = await supabase.auth.signUp({
-        email, password,
-        options: { emailRedirectTo: window.location.origin }
-      })
-      if (signUpError) {
-        if (signUpError.message.includes('already registered') || signUpError.message.includes('User already registered')) {
-          setErr('このメールアドレスは既に登録済みです。「食卓へ入る」からログインしてください。')
-        } else {
-          throw signUpError
-        }
-        return
-      }
+      const {error: signUpError, data: signUpData} = await supabase.auth.signUp({
+  email, password,
+  options: { emailRedirectTo: window.location.origin }
+})
+if (signUpError) {
+  if (signUpError.message.includes('already registered') || signUpError.message.includes('User already registered')) {
+    setErr('既にアカウントが発行済みです。「食卓へ入る」からログインしてください。')
+  } else {
+    throw signUpError
+  }
+  return
+}
+
+// 本登録済みユーザーの判定
+if (signUpData?.user?.identities?.length === 0) {
+  setErr('既にアカウントが発行済みです。「食卓へ入る」からログインしてください。')
+  return
+}
 
       // 送信成功したら時刻を保存
       localStorage.setItem(sentKey, now.toString())
