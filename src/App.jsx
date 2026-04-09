@@ -419,6 +419,21 @@ function PaymentScreen({user,onSuccess,onLogout}) {
 // ─── MAIN APP (after auth + payment) ──────────────────────────
 function MainApp({user,onLogout}) {
   const [screen,setScreen] = useState('home')
+
+useEffect(() => {
+  const titles = {
+    home:      'SOZAI TABLE｜毎日の食卓が、あなたをつくっている。',
+    checker:   '添加物チェッカー｜SOZAI TABLE',
+    recipe:    '惣菜レシピ提案｜SOZAI TABLE',
+    nutrition: '食材の栄養解説｜SOZAI TABLE',
+    program:   'マイプログラム｜SOZAI TABLE',
+    column:    'シェフのコラム｜SOZAI TABLE',
+    qa:        'Q&A相談｜SOZAI TABLE',
+    saved:     '保存リスト｜SOZAI TABLE',
+  }
+  document.title = titles[screen] || 'SOZAI TABLE'
+}, [screen])
+  
   const [savedRecipes,setSavedRecipes] = useState([])
   const [savedNutrition,setSavedNutrition] = useState([])
   const [currentProgram,setCurrentProgram] = useState(null)
