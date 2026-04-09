@@ -130,7 +130,7 @@ function AuthScreen({onAuth}) {
     return null
   }
 
-  const handle = async () => {
+const handle = async () => {
     if (!email || !password) return
     if (mode === 'signup') {
       const pwErr = validatePassword(password)
@@ -139,12 +139,43 @@ function AuthScreen({onAuth}) {
     setLoading(true); setErr(null); setMsg(null)
     try {
       if (mode === 'signup') {
-        const {error} = await supabase.auth.signUp({email,password})
-        if (error) throw error
-        setMsg('【SOZAI TABLE】確認メールを送りました。メール内のリンクをクリックしてログインしてください。')
+        // 既存ユーザーかチェック
+        const {data: signInCheck} = await supabase.auth.signInWithPassword({email, password:'__check_only__'})
+        // サインイン試行でユーザー存在確認（パスワード違いエラー = ユーザー存在）
+        const {error: signUpError, data: signUpData} = await supabase.auth.signUp({
+          email, password,
+          options: { emailRedirectTo: window.location.origin }
+        })
+        if (signUpError) {
+          if (signUpError.message.includes('already registered') || signUpError.message.includes('User already registered')) {
+            setErr('このメールアドレスは既に登録済みです。「食卓へ入る」からログインしてください。')
+          } else {
+            throw signUpError
+          }
+          return
+        }
+        // 確認メール送信済みフラグをセッションストレージに保存（60秒間）
+        const sentKey = `signup_sent_${email}`
+        const lastSent = sessionStorage.getItem(sentKey)
+        const now = Date.now()
+        if (lastSent && now - parseInt(lastSent) < 86400000) {
+          setMsg('確認メールは既に送信済みです。24時間以内に再送はできません。迷惑メールフォルダもご確認ください。')
+          return
+        }
+        sessionStorage.setItem(sentKey, now.toString())
+        setMsg('【SOZAI TABLE】確認メールを送りました。メール内のリンクをクリックしてログインしてください。迷惑メールフォルダもご確認ください。')
       } else {
         const {data,error} = await supabase.auth.signInWithPassword({email,password})
-        if (error) throw error
+        if (error) {
+          if (error.message.includes('Invalid login credentials')) {
+            setErr('メールアドレスまたはパスワードが正しくありません。')
+          } else if (error.message.includes('Email not confirmed')) {
+            setErr('メールアドレスの確認が完了していません。届いた確認メールのリンクをクリックしてください。')
+          } else {
+            throw error
+          }
+          return
+        }
         onAuth(data.user)
       }
     } catch(e) { setErr(e.message) }
