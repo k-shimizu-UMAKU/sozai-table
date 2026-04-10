@@ -16,7 +16,7 @@ async function callClaude(system, userMsg, maxTokens = 1500) {
   const { data: sessionData } = await supabase.auth.getSession()
   const token = sessionData?.session?.access_token
 
-  const res = await supabase.functions.invoke('claude-proxy', {
+  const res = await supabase.functions.invoke('smooth-handler', {
     headers: { Authorization: `Bearer ${token}` },
     body: { system, userMsg, maxTokens },
   })
