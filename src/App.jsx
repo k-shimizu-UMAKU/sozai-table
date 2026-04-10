@@ -338,7 +338,10 @@ function PaymentScreen({user,onSuccess,onLogout}) {
   const handleSubscribe = async () => {
     setLoading(true)
     try {
+      const {data: sessionData} = await supabase.auth.getSession()
+      const token = sessionData?.session?.access_token
       const {data,error} = await supabase.functions.invoke('create-checkout',{
+        headers: { Authorization: `Bearer ${token}` },
         body:{
           userId: user.id,
           email: user.email,
