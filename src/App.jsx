@@ -13,17 +13,16 @@ const C = {
 
 // ─── Claude API call ───────────────────────────────────────────
 async function callClaude(system, userMsg, maxTokens = 1500) {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: maxTokens,
-      system,
-      messages: [{ role: 'user', content: userMsg }],
-    }),
+  const { data: sessionData } = await supabase.auth.getSession()
+  const token = sessionData?.session?.access_token
+
+  const res = await supabase.functions.invoke('claude-proxy', {
+    headers: { Authorization: `Bearer ${token}` },
+    body: { system, userMsg, maxTokens },
   })
-  const data = await res.json()
+
+  if (res.error) throw new Error(res.error.message)
+  const data = res.data
   return JSON.parse((data.content?.[0]?.text || '').replace(/```json|```/g, '').trim())
 }
 
